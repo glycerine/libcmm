@@ -83,7 +83,11 @@ extern "C" {
 
 #define max(x,y)        ((x)<(y) ? (y) : (x))
 #define min(x,y)        ((x)<(y) ? (x) : (y))
-#define cmm_printf(...)  fprintf(stdlog, __VA_ARGS__)
+
+/* jea debug add fprintf(stdout, __VA_ARGS__) to line below */
+/*#define cmm_printf(...)  fprintf(stdlog, __VA_ARGS__) */
+#define cmm_printf(...) { fprintf(stdlog, __VA_ARGS__); fprintf(stdout, __VA_ARGS__); }
+
 #define debug(...)      cmm_debug_enabled ? (\
         fprintf(stderr, "cmm(%s): ", C99__FUNC__), \
         fprintf(stderr, __VA_ARGS__), \
@@ -2300,10 +2304,10 @@ void dump_types(void)
 void dump_roots(void)
 {
    cmm_printf("Dumping roots...\n");
-   for (int r = 0; r <= roots_last; r++)
+   for (int r = 0; r <= roots_last; r++) {
       cmm_printf(" loc 0x%lx --> 0x%lx\n", 
-                PPTR(roots[r]), PPTR(*(roots[r])));
-
+		 PPTR(roots[r]), PPTR(*(roots[r])));
+   }
    cmm_printf("\n");
    fflush(stdlog);
 }
@@ -2387,8 +2391,10 @@ void dump(const char* where, int line, void*  cmmstack_t_ptr ) {
    printf("dump_stats:\n");
    dump_heap_stats();
 
-   printf("\n=========================\n");
-   printf("mem_info(3) %s:\n",cmm_info(3));
+// can't do this here, because mem_info can
+   // spawn a collection, -> infinite loop.
+//   printf("\n=========================\n");
+//   printf("mem_info(3) %s:\n",cmm_info(3));
 
 }
 

@@ -1784,19 +1784,20 @@ STATICFUNC void mark(void)
 #endif
 
 
-   { 
-      uintptr_t __a = 0; 
-      for (int b = 0; b < num_blocks; b++, __a += (1<<12)) { 
-	 if (blockrecs[b].in_use > 0) { uintptr_t __a_next = __a + (1<<12); 
-	    for (uintptr_t a = __a; a < __a_next; a += (1<<3)) { 
-	       if ((hmap[(((uintptr_t)(a))>>(3 + 3))] & ((8) << (((((uintptr_t)(a))>>3) & (8 -1)) * 4)))) {
+   {                                                               // first line of DO_HEAP(a,b)
+      uintptr_t __a = 0;                                           // 
+      for (int b = 0; b < num_blocks; b++, __a += (1<<12)) {       //
+	 if (blockrecs[b].in_use > 0) {                            //
+	    uintptr_t __a_next = __a + (1<<12);                    //
+	    for (uintptr_t a = __a; a < __a_next; a += (1<<3)) {   //
+	       if ((hmap[(((uintptr_t)(a))>>(3 + 3))] & ((8) << (((((uintptr_t)(a))>>3) & (8 -1)) * 4)))) {   // last line of DO_HEAP(a,b)
 		  finalize_func_t *finalize = types[blockrecs[b].t].finalize;
 		  mark_func_t *mark = types[blockrecs[b].t].mark;
-		  if (!(hmap[(((uintptr_t)(a))>>(3 + 3))] & ((1) << (((((uintptr_t)(a))>>3) & (8 -1)) * 4))) && finalize) {
+		  if (!(hmap[(((uintptr_t)(a))>>(3 + 3))] & ((1) << (((((uintptr_t)(a))>>3) & (8 -1)) * 4))) && finalize) { // if (!HMAP_LIVE(a) && finalize)
 		     void *p = heap + a;
 		     if (mark) mark(p);
 		     trace_from_stack();
-		     (hmap[(((uintptr_t)(a))>>(3 + 3))] &=~ ((1) << (((((uintptr_t)(a))>>3) & (8 -1)) * 4)));
+		     (hmap[(((uintptr_t)(a))>>(3 + 3))] &=~ ((1) << (((((uintptr_t)(a))>>3) & (8 -1)) * 4))); // HMAP_UNMARK_LIVE(a);  /* break cycles */
 		  }
 	       } 
 	    }
@@ -1805,17 +1806,17 @@ STATICFUNC void mark(void)
    };
    
    { 
-      int __lasti = collect_in_progress ? man_k : man_last; 
-      for (int i = 0; i <= __lasti; i++) { {
-	    mt_t t = ((((uintptr_t)(managed[i])) & 4) ? mt_blob : ((info_t *)(unseal((char *)managed[i])))->t);
+      int __lasti = collect_in_progress ? man_k : man_last;   // DO_MANAGED(i)
+      for (int i = 0; i <= __lasti; i++) { {                  // DO_MANAGED(i)
+	    mt_t t = ((((uintptr_t)(managed[i])) & 4) ? mt_blob : ((info_t *)(unseal((char *)managed[i])))->t); // mt_t t = INFO_T(managed[i]);
 	    finalize_func_t *finalize = types[t].finalize;
 	    mark_func_t *mark = types[t].mark;
-	    if (!(((uintptr_t)(managed[i])) & 1) && finalize) {
+	    if (!(((uintptr_t)(managed[i])) & 1) && finalize) {  // if (!LIVE(managed[i]) && finalize)
 	       if (mark) mark(((void *)((((uintptr_t)(managed[i])) & ~((1<<3)-1)))));
 
 	       trace_from_stack();
 	       { 
-		  managed[i] = (void *)((uintptr_t)(managed[i]) & ~1); 
+		  managed[i] = (void *)((uintptr_t)(managed[i]) & ~1); // UNMARK_LIVE(managed[i]); /* break cycles */
 	       };
 	    }
 	 } 
@@ -1838,7 +1839,6 @@ int cmm_collect_now(void)
    } 
    assert(!collect_in_progress);
 
-   d();
    collect_prologue();
    d();
    

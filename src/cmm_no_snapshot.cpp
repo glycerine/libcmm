@@ -1249,17 +1249,17 @@ void _cmm_pop_chunk(cmmstack_t *st)
 
 static cmmstack_t *make_stack(void)
 {
-   DISABLE_GC;
+   DISABLE_GC;  // expands to: bool __nogc = gc_disabled; gc_disabled = true;
    
-   size_t s = MIN_HUNKSIZE*(1+(sizeof(cmmstack_t)/MIN_HUNKSIZE));
+   size_t s = MIN_HUNKSIZE*(1+(sizeof(cmmstack_t)/MIN_HUNKSIZE)); // expands to: (1<<3)*(1+(sizeof(cmmstack_t)/(1<<3)));
    cmmstack_t *st = (cmmstack_t*)alloc_variable_sized(mt_stack, s);
-   ABORT_WHEN_OOM(st);
-   assert(st && !INHEAP(st));
+   ABORT_WHEN_OOM(st);         // expands to:  if (!(st)) { warn("allocation failed\n"); abort(); }
+   assert(st && !INHEAP(st));  // expands to: (((char *)(st) >= heap) && ((char *)(st) < (heap + heapsize)))
    memset(st, 0, sizeof(cmmstack_t));
    add_managed(st);
    add_chunk(st);
 
-   ENABLE_GC;
+   ENABLE_GC; // expands to: gc_disabled = __nogc;
    return st;
 }
 
@@ -1690,6 +1690,8 @@ void cmm_root(const void *_pr)
 {
    void **pr = (void **)_pr;
 
+   /* jea: would judy arrays minimize cache-fills and be faster here than linear search? */
+
    /* avoid creating duplicates */
    for (int i = roots_last; i >= 0 ; i--) {
       if (roots[i] == pr) {
@@ -2084,7 +2086,7 @@ void cmm_init(int npages, notify_func_t *clnotify, FILE *log)
 
    /* set up transient object stack */
    *(cmmstack_t **)&_cmm_transients = make_stack();
-   CMM_ROOT(_cmm_transients);
+   CMM_ROOT(_cmm_transients); // macro expands to: cmm_root(&_cmm_transients);
    assert(stack_works_fine(_cmm_transients));
    assert(stack_empty(_cmm_transients));
 
@@ -2357,22 +2359,25 @@ void dump(const char* where, int line, void*  cmmstack_t_ptr ) {
 
    cmmstack_t* st = (cmmstack_t*)cmmstack_t_ptr;
 
-   printf("\n&&&&&&&&&&&&&&&&&&&&&&&&&\n");
-   printf("&&&&&&     %s   : line %d\n",where,line);
-   printf("&&&&&&&&&&&&&&&&&&&&&&&&&\n");
+   printf("\n&&&&&&&&&&&&&&&&&&&&&&&&&=========================\n");
+   printf("&&&&&& BEGIN     %s   : line %d\n",where,line);
+   printf("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n");
  
 
-   printf("\n=========================\n");
-   printf("dump_roots:\n");
-   dump_roots();
-   
-   printf("\n=========================\n");
-   printf("dump_managed:\n");
-   dump_managed(mt_undefined);
 
    printf("\n=========================\n");
    printf("dump_types:\n");
    dump_types();
+
+
+   printf("\n=========================\n");
+   printf("dump_stats:\n");
+   dump_heap_stats();
+
+// can't do this here, because mem_info can
+   // spawn a collection, -> infinite loop.
+//   printf("\n=========================\n");
+//   printf("mem_info(3) %s:\n",cmm_info(3));
 
    printf("\n=========================\n");
    printf("dump_stack(st):");
@@ -2388,13 +2393,16 @@ void dump(const char* where, int line, void*  cmmstack_t_ptr ) {
    dump_stack_depth();
 
    printf("\n=========================\n");
-   printf("dump_stats:\n");
-   dump_heap_stats();
+   printf("dump_roots:\n");
+   dump_roots();
+   
+   printf("\n=========================\n");
+   printf("dump_managed:\n");
+   dump_managed(mt_undefined);
 
-// can't do this here, because mem_info can
-   // spawn a collection, -> infinite loop.
-//   printf("\n=========================\n");
-//   printf("mem_info(3) %s:\n",cmm_info(3));
+   printf("\n&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n");
+   printf("&&&&&& END     %s   : line %d\n",where,line);
+   printf("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&\n");
 
 }
 

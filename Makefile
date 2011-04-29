@@ -3,7 +3,8 @@ LIBNAME = cmm
 LIBFILENAME = lib${LIBNAME}.so
 
 HEADERS = src/cmm.h src/cmm_private.h
-SOURCES = src/cmm.cpp
+#SOURCES = src/cmm.cpp
+SOURCES = src/cmm_no_snapshot.cpp
 OBJECTS = ${SOURCES:.cpp=.o}
 
 #CFLAGS   += -std=c99 -Wall -Werror -march=i686 -fPIC -O2
@@ -27,7 +28,7 @@ example: ${OBJECTS}
 	${CC} ${CFLAGS} -Isrc demos/top-down-size-splay-cmm.cpp ${OBJECTS} -o example
 
 test1:  ${OBJECTS}
-	g++ ${CPPFLAGS} -Isrc -g demos/test1cmm.cpp src/cmm.cpp -o demos/test1
+	g++ ${CPPFLAGS} -Isrc -g demos/test1cmm.cpp src/cmm_no_snapshot.cpp -o demos/test1
 
 
 clean:

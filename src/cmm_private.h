@@ -12,30 +12,32 @@ struct cmm_stack {
 
 extern struct cmm_stack *const _cmm_transients;
 
-#define st _cmm_transients
+// jea comment & replace st with _cmm_transients
+/* #define st _cmm_transients */
 
 STATICFUNC inline void _cmm_anchor(C99_CONST void *p)
 {
-   if (st->sp > st->sp_min)
-      *(--(st->sp)) = p;
+   if (_cmm_transients->sp > _cmm_transients->sp_min)
+      *(--(_cmm_transients->sp)) = p;
    else
       cmm_anchor(p);
 }
 
 STATICFUNC inline C99_CONST void **_cmm_begin_anchored(void)
 {
-   return (C99_CONST void**)st->sp;
+   return (C99_CONST void**)_cmm_transients->sp;
 }
 
 STATICFUNC inline void _cmm_end_anchored(C99_CONST void **sp)
 {
    extern void _cmm_pop_chunk(struct cmm_stack *);
 
-   while (st->sp>sp || sp>st->sp_max)
-      _cmm_pop_chunk(st);
-   st->sp = (const void**)sp;
+   while (_cmm_transients->sp>sp || sp>_cmm_transients->sp_max)
+      _cmm_pop_chunk(_cmm_transients);
+   _cmm_transients->sp = (const void**)sp;
 }
-#undef st
+// jea comment
+/* #undef st */ 
 
 STATICFUNC inline void _cmm_mark(C99_CONST void *p)
 {

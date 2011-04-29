@@ -55,19 +55,23 @@ mt_t mt_tree = mt_undefined;
 int nfinal = 0;
 
 bool tree_finalizer(void* p) {
+#if 0
   char buf[500];
   sprintf(buf,"/home/jaten/dj/strongref/libcmm/finalizer.log.number_%d.pid_%d__and_ppid_%d.tid_%ld",nfinal,getpid(),getppid(),syscall(SYS_gettid));
   FILE* finallog = fopen(buf,"w");
   fprintf(finallog,"%d time in tree_finalizer, now for object %p\n",nfinal++,p);
   fclose(finallog);
   sync();
+#endif
   return true;
 }
 
 
 void fill_tree_vector(tree_v& v, int reps) {
-  CMM_ENTER;
+  d();
+  CMM_ENTER; // expands to:  void **__cmm_stack_pointer = _cmm_begin_anchored()
   for (int n = 0; n < reps; n++) {
+       d();
        // allocate and discard all these lines
        Tree* root = (Tree*)cmm_alloc(mt_tree);
        // CMM_ANCHOR(root) won't protect them, b/c no root points to them, so they all get collected upon CMM_EXIT.
@@ -75,7 +79,9 @@ void fill_tree_vector(tree_v& v, int reps) {
        cmm_root(root); // don't use CMM_ROOT, because that takes the address of its argument!
        v.push_back(root);
   }
-  CMM_EXIT;
+  d();
+  CMM_EXIT; // expands to: _cmm_end_anchored(__cmm_stack_pointer)
+  d();
 }
 
 
@@ -98,8 +104,9 @@ int main(int argc, char **argv)
     int nbytes = 4096;
     int npages = nbytes / 4096;
     npages=1;
-      
+
     cmm_init(npages, 0, flog); /* request memory in terms of npages, not nbytes */
+    d();
     cmm_debug(true); /* jea debug add */
 
     mt_tree = CMM_REGTYPE("tree", 1024, clear_tree, mark_tree, tree_finalizer);
@@ -112,7 +119,9 @@ int main(int argc, char **argv)
     tree_v v;
 
     // call subroutine 
+    d();
     fill_tree_vector(v,reps);
+    d();
 
     printf("Just allocated 100 Trees in a subroutine, protecting them with CMM_ANCHOR().\n");
 

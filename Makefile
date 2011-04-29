@@ -27,7 +27,7 @@ example: ${OBJECTS}
 	${CC} ${CFLAGS} -Isrc demos/top-down-size-splay-cmm.cpp ${OBJECTS} -o example
 
 test1:  ${OBJECTS}
-	g++ ${CPPFLAGS} -Isrc -g test1cmm.cpp src/cmm.cpp -o test1
+	g++ ${CPPFLAGS} -Isrc -g demos/test1cmm.cpp src/cmm.cpp -o demos/test1
 
 
 clean:

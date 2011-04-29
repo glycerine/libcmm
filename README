@@ -1,3 +1,19 @@
+README update 28 April 2011:
+
+This branch of libcmm is integrating my port to C++ along with a number
+of changes to get libcmm ready for additinoal features and a release.
+
+At Ralf's suggestion, identifiers everywhere are now using the cmm_ prefix
+instead of the mm_ prefix, because mm_ was already taken by another library.
+
+The C++ compile forced the addition of a number of C99 macros to get
+compilation with C++ as well as C99. I've probably broken the C99 version
+for now; this is just an intermediate checkin.
+
+- jea
+
+Original README:
+
 LIBCMM is a small, portable garbage collector for C
 programs. To use it, just build the library (make) and
 link to it.
@@ -6,3 +22,4 @@ To learn more, make contributions, or submit bug reports
 go to the LIBCMM homepage at http://libcmm.sf.net.
 
 April 2009, Portland (OR).
+

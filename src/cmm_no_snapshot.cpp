@@ -229,8 +229,7 @@ typedef C99_CONST void    *stack_elem_t;
 typedef stack_elem_t  *stack_ptr_t;
 typedef struct stack cmmstack_t;
 
-/* dump() calling d and ds(cmmstack_t) debug macros */
-void dump(const char* where, int line, cmmstack_t *st=0);
+ /* dump() calling d and ds(cmmstack_t) debug macros */
 #ifndef NDEBUG
 #define d()   dump(__FUNCTION__,__LINE__,0)
 #define ds(st) dump(__FUNCTION__,__LINE__,st)
@@ -2348,7 +2347,9 @@ void dump_heap_stats(void)
 }
 
 
-void dump(const char* where, int line, cmmstack_t *st) {
+void dump(const char* where, int line, void*  cmmstack_t_ptr ) {
+
+   cmmstack_t* st = (cmmstack_t*)cmmstack_t_ptr;
 
    printf("\n&&&&&&&&&&&&&&&&&&&&&&&&&\n");
    printf("&&&&&&     %s   : line %d\n",where,line);
@@ -2368,8 +2369,9 @@ void dump(const char* where, int line, cmmstack_t *st) {
    dump_types();
 
    printf("\n=========================\n");
-   printf("dump_stack(st):\n");
+   printf("dump_stack(st):");
    if (st) {
+      printf("\n");
       dump_stack(st);
    } else {
       printf("  -- st was null, not calling dump_stack(st) -- \n");

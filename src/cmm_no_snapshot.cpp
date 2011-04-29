@@ -32,6 +32,7 @@ extern "C" {
 #endif 
 
 
+
 /*
  * Note: This implementation requires that malloc/realloc/calloc
  * deliver pointers that are 8-byte aligned (i.e., the lowest
@@ -227,6 +228,16 @@ bool              cmm_debug_enabled = false;
 typedef C99_CONST void    *stack_elem_t; 
 typedef stack_elem_t  *stack_ptr_t;
 typedef struct stack cmmstack_t;
+
+/* dump() calling d and ds(cmmstack_t) debug macros */
+void dump(const char* where, int line, cmmstack_t *st=0);
+#ifndef NDEBUG
+#define d()   dump(__FUNCTION__,__LINE__,0)
+#define ds(st) dump(__FUNCTION__,__LINE__,st)
+#else
+#define d() 
+#define ds(st)
+#endif
 
 static cmmstack_t   *make_stack(void);
 static void         stack_push(cmmstack_t *, stack_elem_t);
@@ -895,6 +906,7 @@ STATICFUNC bool empty(void)
 
 STATICFUNC void recover_stack(void)
 {
+   d();
    if (!stack_overflowed) return;
    debug("marking stack overflowed, recovering\n");
    assert(empty());
@@ -1819,13 +1831,18 @@ STATICFUNC void mark(void)
 
 int cmm_collect_now(void)
 {
+   d();
+
    if (gc_disabled) {
       collect_requested = true;
       return 0;
    } 
    assert(!collect_in_progress);
-   collect_prologue();
 
+   d();
+   collect_prologue();
+   d();
+   
    int n = 0;
    { 
       // macro expansion of WITH_TEMP_STORAGE
@@ -1833,12 +1850,15 @@ int cmm_collect_now(void)
       stack = marking_stack;
       {
 	 mark();
+	 d();
 	 n = sweep_now();
+	 d();
       } 
       stack = __null; 
    };
 
    collect_epilogue();
+   d();
    return n;
 }
 
@@ -2328,14 +2348,39 @@ void dump_heap_stats(void)
 }
 
 
-void dump(cmmstack_t *st = 0) {
+void dump(const char* where, int line, cmmstack_t *st) {
 
-   dump_managed(mt_undefined);
-   dump_types();
+   printf("\n&&&&&&&&&&&&&&&&&&&&&&&&&\n");
+   printf("&&&&&&     %s   : line %d\n",where,line);
+   printf("&&&&&&&&&&&&&&&&&&&&&&&&&\n");
+ 
+
+   printf("\n=========================\n");
+   printf("dump_roots:\n");
    dump_roots();
    
-   if (st) dump_stack(st);
+   printf("\n=========================\n");
+   printf("dump_managed:\n");
+   dump_managed(mt_undefined);
+
+   printf("\n=========================\n");
+   printf("dump_types:\n");
+   dump_types();
+
+   printf("\n=========================\n");
+   printf("dump_stack(st):\n");
+   if (st) {
+      dump_stack(st);
+   } else {
+      printf("  -- st was null, not calling dump_stack(st) -- \n");
+   }
+
+   printf("\n=========================\n");
+   printf("dump_stack_depth:\n");
    dump_stack_depth();
+
+   printf("\n=========================\n");
+   printf("dump_stats:\n");
    dump_heap_stats();
 }
 

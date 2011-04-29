@@ -1,7 +1,7 @@
 README update 28 April 2011:
 
 This branch of libcmm is integrating my port to C++ along with a number
-of changes to get libcmm ready for additinoal features and a release.
+of changes to get libcmm ready for additional features and a release.
 
 At Ralf's suggestion, identifiers everywhere are now using the cmm_ prefix
 instead of the mm_ prefix, because mm_ was already taken by another library.

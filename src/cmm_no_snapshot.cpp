@@ -85,6 +85,8 @@ extern "C" {
 #define min(x,y)        ((x)<(y) ? (x) : (y))
 #define cmm_printf(...)  fprintf(stdlog, __VA_ARGS__)
 #define debug(...)      cmm_debug_enabled ? (\
+        fprintf(stderr, "cmm(%s): ", C99__FUNC__), \
+        fprintf(stderr, __VA_ARGS__), \
         fprintf(stdlog, "cmm(%s): ", C99__FUNC__), \
         fprintf(stdlog, __VA_ARGS__), 0) : 1
 
@@ -2384,6 +2386,10 @@ void dump(const char* where, int line, void*  cmmstack_t_ptr ) {
    printf("\n=========================\n");
    printf("dump_stats:\n");
    dump_heap_stats();
+
+   printf("\n=========================\n");
+   printf("mem_info(3) %s:\n",cmm_info(3));
+
 }
 
 

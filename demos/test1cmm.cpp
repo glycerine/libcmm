@@ -128,6 +128,7 @@ int main(int argc, char **argv)
 
     root = 0;
 
+    d();
     cmm_collect_now();
 
        /* Unfortunately on the cmm_collect_now() call, we are seeing:

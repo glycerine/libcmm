@@ -36,19 +36,58 @@
  * call mm_init but leave this to the library client.
  */
 
-#ifndef MM_INCLUDED
-#define MM_INCLUDED
+#ifndef CMM_INCLUDED
+#define CMM_INCLUDED
+
 
 #include <stdbool.h>
 #include <stdio.h>
-#include <stdint.h>
+#include <stdint.h> /* defines UINT32_MAX as (4294967295U) */
+
+
+#ifdef __cplusplus
+extern "C" {
+
+/* jea C99 <-> C++ portability stuff */
+
+/* C++ */
+#define UINT32_MAX (4294967295U)
+#define STATICFUNC
+#define RESTRICTC99
+#define C99_CONST
+#define C99__FUNC__  __FUNCTION__
+
+#else
+
+/* C99 */
+#define C99__FUNC__    __func__ 
+#define STATICFUNC     static 
+#define RESTRICTC99    restrict 
+#define C99_CONST      const 
+
+#endif 
+
 
 #define NVALGRIND
-#define MM_SIZE_MAX    (UINT32_MAX*MIN_HUNKSIZE)
-// #define MM_SNAPSHOT_GC
+#define CMM_SIZE_MAX    (UINT32_MAX * MIN_HUNKSIZE)
+
+/* 
+   CMM_SNAPSHOT_GC turns on the feature that
+   forks a child process to do garbage collection 
+   concurrently in the background. If snapshots are
+   used, the child process communicates
+   the mark-and-sweep results back to
+   the parent process using a pipe.
+
+   Without this, GC is done synchronously
+   in this same process, when cmm_collect_now()
+   or cmm_idle() is called.
+*/
+
+// #define CMM_SNAPSHOT_GC
 
 typedef void clear_func_t(void *, size_t);
-typedef void mark_func_t(const void *);
+typedef void mark_func_t(C99_CONST void *);
 typedef bool finalize_func_t(void *);
 typedef void notify_func_t(void *);
 
@@ -69,62 +108,69 @@ enum mt {
 };
 
 /* Administration */
-void    mm_init(int, notify_func_t *, FILE *); // initialize manager
-void    mm_debug(bool);                  // enable/disable debug code
-mt_t    mm_regtype(const char *, size_t, clear_func_t, mark_func_t *, finalize_func_t *);
-void    mm_root(const void *);           // add a root location
-void    mm_unroot(const void *);         // remove a root location
-bool    mm_idle(void);                   // do work, return true when more work
+void    cmm_init(int, notify_func_t *, FILE *); // initialize manager
+void    cmm_debug(bool);                  // enable/disable debug code
+mt_t    cmm_regtype(const char *, size_t, clear_func_t, mark_func_t *, finalize_func_t *);
+void    cmm_root(const void *);           // add a root location
+void    cmm_unroot(const void *);         // remove a root location
+bool    cmm_idle(void);                   // do work, return true when more work
 
 /* Garbage collection */
-int     mm_collect_now(void);            // trigger garbage collection
-bool    mm_collect_in_progress(void);    // true if gc is under way
+int     cmm_collect_now(void);            // trigger garbage collection
+bool    cmm_collect_in_progress(void);    // true if gc is under way
 
 /* Allocation functions */
-void   *mm_alloc(mt_t);                  // allocate fixed-size object
-void   *mm_allocv(mt_t, size_t);         // allocate variable-sized object
-void   *mm_malloc(mt_t, size_t);         // allocate variable-sized object
-void   *mm_blob(size_t);                 // allocate blob of size
-char   *mm_strdup(const char *);         // create managed copy of string
+void   *cmm_alloc(mt_t);                  // allocate fixed-size object
+void   *cmm_allocv(mt_t, size_t);         // allocate variable-sized object
+void   *cmm_malloc(mt_t, size_t);         // allocate variable-sized object
+void   *cmm_blob(size_t);                 // allocate blob of size
+char   *cmm_strdup(C99_CONST char *);         // create managed copy of string
 
 /* Properties of managed objects */
-bool    mm_ismanaged(const void *);      // true if managed object
-void    mm_manage(const void *);         // manage malloc'ed address 
-void    mm_notify(const void *, bool);   // set or unset notify flag
-mt_t    mm_typeof(const void *);         // type of object
+bool    cmm_ismanaged(C99_CONST void *);      // true if managed object
+void    cmm_manage(C99_CONST void *);         // manage malloc'ed address 
+void    cmm_notify(C99_CONST void *, bool);   // set or unset notify flag
+mt_t    cmm_typeof(C99_CONST void *);         // type of object
 
 /* Diagnostics */
-char   *mm_info(int);                    // diagnostic message in managed string
-int     mm_prof_start(int *);            // start profiling, initialize histogram
-void    mm_prof_stop(int *);             // stop profiling and write data
-char  **mm_prof_key(void);               // make key for profile data
+char   *cmm_info(int);                    // diagnostic message in managed string
+int     cmm_prof_start(int *);            // start profiling, initialize histogram
+void    cmm_prof_stop(int *);             // stop profiling and write data
+char  **cmm_prof_key(void);               // make key for profile data
 
 /* MACROS */
-#define MM_MARK(p)              { if (p) _mm_mark(p); }
-#define MM_REGTYPE(n,s,c,m,f)   mm_regtype(n, s, (clear_func_t *)c, (mark_func_t *)m, (finalize_func_t *)f)
-#define MM_ROOT(p)              mm_root(&p)
-#define MM_UNROOT(p)            mm_unroot(&p)
+#define CMM_MARK(p)              { if (p) _cmm_mark(p); }
+#define CMM_REGTYPE(n,s,c,m,f)   cmm_regtype(n, s, (clear_func_t *)c, (mark_func_t *)m, (finalize_func_t *)f)
+#define CMM_ROOT(p)              cmm_root(&p)
+#define CMM_UNROOT(p)            cmm_unroot(&p)
 
-#define MM_ENTER                const void **__mm_stack_pointer = _mm_begin_anchored()
-#define MM_EXIT                 _mm_end_anchored(__mm_stack_pointer)
-#define MM_ANCHOR(p)            { if (p) _mm_anchor(p); }
-#define MM_RETURN(p)            { void *pp = p; MM_EXIT; MM_ANCHOR(pp); return pp; }
-#define MM_RETURN_VOID          MM_EXIT; return
+#define CMM_ENTER                C99_CONST void **__cmm_stack_pointer = _cmm_begin_anchored()
+#define CMM_EXIT                 _cmm_end_anchored(__cmm_stack_pointer)
+#define CMM_ANCHOR(p)            { if (p) _cmm_anchor(p); }
+#define CMM_RETURN(p)            { void* pp = p; CMM_EXIT; CMM_ANCHOR(pp); return pp; }
+#define CMM_RETURN_TYPE(p,Type)  { Type pp = p; CMM_EXIT; CMM_ANCHOR(pp); return pp; }
+#define CMM_RETURN_VOID          CMM_EXIT; return
 
-#define MM_NOGC                 bool __mm_nogc = mm_begin_nogc(false)
-#define MM_NOGC_END             mm_end_nogc(__mm_nogc)
-#define MM_PAUSEGC              bool __mm_pausegc = mm_begin_nogc(true)
-#define MM_PAUSEGC_END          mm_end_nogc(__mm_pausegc)
+#define CMM_NOGC                 bool __cmm_nogc = cmm_begin_nogc(false)
+#define CMM_NOGC_END             cmm_end_nogc(__cmm_nogc)
+#define CMM_PAUSEGC              bool __cmm_pausegc = cmm_begin_nogc(true)
+#define CMM_PAUSEGC_END          cmm_end_nogc(__cmm_pausegc)
 
-void    mm_anchor(const void *);
-bool    mm_begin_nogc(bool);
-void    mm_end_nogc(bool);
+void    cmm_anchor(C99_CONST void *);
+bool    cmm_begin_nogc(bool);
+void    cmm_end_nogc(bool);
 
-#ifndef MM_INTERNAL
-#include "mm_private.h"
+#ifndef CMM_INTERNAL
+#include "cmm_private.h"
 #endif
 
-#endif /* MM_INCLUDED */
+
+#ifdef __cplusplus
+}
+#endif 
+
+
+#endif /* CMM_INCLUDED */
 
 
 /* -------------------------------------------------------------

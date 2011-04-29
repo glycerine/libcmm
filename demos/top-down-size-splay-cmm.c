@@ -54,7 +54,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "mm.h"
+#include "cmm.h"
 
 typedef struct tree_node Tree;
 struct tree_node {
@@ -84,9 +84,9 @@ static void clear_tree(Tree *t)
 
 static void mark_tree(Tree *t)
 {
-    MM_MARK(t->left);
-    MM_MARK(t->right);
-    MM_MARK(t->key);
+    CMM_MARK(t->left);
+    CMM_MARK(t->right);
+    CMM_MARK(t->key);
 }
 
 mt_t mt_tree = mt_undefined;
@@ -177,8 +177,8 @@ Tree * insert(void *i, Tree * t) {
 	    return t;  /* it's already there */
 	}
     }
-    MM_ENTER;
-    new = (Tree *) mm_alloc(mt_tree); /* aborts when OOM */
+    CMM_ENTER;
+    new = (Tree *) cmm_alloc(mt_tree); /* aborts when OOM */
     if (t == NULL) {
 	new->left = new->right = NULL;
     } else if (compare(i, t->key) < 0) {
@@ -194,7 +194,7 @@ Tree * insert(void *i, Tree * t) {
     }
     new->key = i;
     new->size = 1 + node_size(new->left) + node_size(new->right);
-    MM_RETURN(new);
+    CMM_RETURN(new);
 }
 
 Tree * delete(void *i, Tree *t) {
@@ -275,12 +275,12 @@ int main(int argc, char **argv)
 
     compare = (int (*)(void *, void *))strcmp;
 
-    mm_init(32*MBYTE, 0, 0);
-    mt_tree = MM_REGTYPE("tree", sizeof(Tree), clear_tree, mark_tree, 0);
-    MM_ROOT(root);
+    cmm_init(32*MBYTE, 0, 0);
+    mt_tree = CMM_REGTYPE("tree", sizeof(Tree), clear_tree, mark_tree, 0);
+    CMM_ROOT(root);
 
     while (fgets(line, sizeof(line), stdin))
-        root = insert(mm_strdup(line), root);
+        root = insert(cmm_strdup(line), root);
 
     if (!root)
       return;

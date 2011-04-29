@@ -1,0 +1,5 @@
+# git should ignore svn files
+demos/.svn/
+.svn/
+src/.svn/
+

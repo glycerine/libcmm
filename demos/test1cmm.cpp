@@ -85,6 +85,24 @@ void fill_tree_vector(tree_v& v, int reps) {
   d();
   CMM_EXIT; // expands to: _cmm_end_anchored(__cmm_stack_pointer)
   d();
+
+  char* msg100 = strdup(cmm_info(3));
+  printf("after 100 pointers cmm_anchored: mem_info(3): '%s'\n", msg100);
+
+  /* currently this last call to cmm_info(3) results in: (when running "test1 100")
+=========================
+dump_stats:
+
+Program received signal SIGSEGV, Segmentation fault.
+0x000000000040ad71 in dump_heap_stats () at src/cmm_no_snapshot.cpp:2346
+(gdb) bt
+#0  0x000000000040ad71 in dump_heap_stats () at src/cmm_no_snapshot.cpp:2346
+#1  0x000000000040afdc in dump (where=0x40c8a0 "cmm_collect_now", line=1862, cmmstack_t_ptr=0x0) at src/cmm_no_snapshot.cpp:2375
+#2  0x00000000004082b6 in cmm_collect_now () at src/cmm_no_snapshot.cpp:1862
+#3  0x0000000000401894 in main (argc=2, argv=0x7fffffffdb58) at demos/test1cmm.cpp:149
+(gdb) 
+
+*/
 }
 
 
@@ -128,9 +146,6 @@ int main(int argc, char **argv)
 
     printf("Just allocated 100 Trees in a subroutine.\n");
 
-    char* msg100 = strdup(cmm_info(3));
-    printf("after 100 pointers cmm_anchored: mem_info(3): '%s'\n", msg100);
-
 
     int i = 0;
     for(tree_vit it = v.begin(); it != v.end(); ++it, ++i ) {
@@ -146,58 +161,6 @@ int main(int argc, char **argv)
 
     d();
     cmm_collect_now();
-
-       /* Unfortunately on the cmm_collect_now() call, we are seeing:
-
-   Just allocated 100 Trees in a subroutine, protecting them with CMM_ANCHOR().
-   v[0] = Tree at address 0x10a6000
-   v[1] = Tree at address 0x10a6400
-   ...
-   v[98] = Tree at address 0x10bc8d8
-   v[99] = Tree at address 0x10bcce8
-
-before cmm_collect_now() and cmm_idle()-- mem_info(3): 
-
-'Small object heap: 0.08 MByte in 21 blocks (21 used)
-Managed memory   : 0.10 MByte in 81 + 22 objects
-Memory used by MM: 2.02 MByte total
-                 : 0.00 MByte for inheap array
-                 : 2.00 MByte for offheap array
-Page size        : 4096 bytes
-Block size       : 4096 bytes
-GC threshold     : 7 blocks / 0.04 MByte
-Debug code       : enabled
-Memory roots     : 2 total, 2 active
-Transient stack  : 1 objects
-
- Memory type    | size  | # inheap (blocks) | # malloced 
----------------------------------------------------------
-       cmm_stack |    40 |       0  (     0) |          1 
- cmm_stack_chunk |  4096 |       1  (     1) |          0 
-          blob8 |     8 |       0  (     0) |          0 
-         blob16 |    16 |       0  (     0) |          0 
-         blob32 |    32 |       0  (     0) |          0 
-         blob64 |    64 |       0  (     0) |          0 
-        blob128 |   128 |       0  (     0) |          0 
-        blob256 |   256 |       0  (     0) |          0 
-           blob |     0 |       0  (     0) |          1 
-           refs |     0 |       0  (     0) |          0 
-           tree |  1024 |      80  (    20) |         20 
-'
-cmm(mark): root at 0x7fffc814aef8 is not a managed address
-
-Program received signal SIGABRT, Aborted.
-0x00007f1bc5bf7a75 in raise () from /lib/libc.so.6
-(gdb) bt
-#0  0x00007f1bc5bf7a75 in raise () from /lib/libc.so.6
-#1  0x00007f1bc5bfb5c0 in abort () from /lib/libc.so.6
-#2  0x0000000000407b02 in mark () at src/mm.cpp:1725
-#3  0x0000000000407f7b in mm_collect_now () at src/mm.cpp:2055
-#4  0x00000000004019a2 in main (argc=2, argv=0x7fffc814b0a8) at test1.cpp:130
-
-	*/
-
-
 
 
     // do collection in background

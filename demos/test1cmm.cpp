@@ -76,8 +76,11 @@ void fill_tree_vector(tree_v& v, int reps) {
        Tree* root = (Tree*)cmm_alloc(mt_tree);
        // CMM_ANCHOR(root) won't protect them, b/c no root points to them, so they all get collected upon CMM_EXIT.
        // So instead we'll try to make them all roots:
-       cmm_root(root); // don't use CMM_ROOT, because that takes the address of its argument!
+       //cmm_root(root); // don't use CMM_ROOT, because that takes the address of its argument!
+       // and don't use cmm_root b/c that won't protect them.
+       CMM_ANCHOR(root);
        v.push_back(root);
+       printf("v[%d]: root is managed? %d  \n",n,(int)cmm_ismanaged(root));
   }
   d();
   CMM_EXIT; // expands to: _cmm_end_anchored(__cmm_stack_pointer)
@@ -123,7 +126,11 @@ int main(int argc, char **argv)
     fill_tree_vector(v,reps);
     d();
 
-    printf("Just allocated 100 Trees in a subroutine, protecting them with CMM_ANCHOR().\n");
+    printf("Just allocated 100 Trees in a subroutine.\n");
+
+    char* msg100 = strdup(cmm_info(3));
+    printf("after 100 pointers cmm_anchored: mem_info(3): '%s'\n", msg100);
+
 
     int i = 0;
     for(tree_vit it = v.begin(); it != v.end(); ++it, ++i ) {

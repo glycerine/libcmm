@@ -162,7 +162,7 @@ void    cmm_end_nogc(bool);
 
 
  /* dump() calling d and ds(cmmstack_t) debug macros */
-void dump(const char* where, int line, void* cmmstack_t_ptr=0);
+void dump(const char* where, int line, void* cmmstack_t_ptr);
 #ifndef NDEBUG
 #define d()   dump(__FUNCTION__,__LINE__,0)
 #define ds(st) dump(__FUNCTION__,__LINE__,st)
